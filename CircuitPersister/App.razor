@@ -1,0 +1,41 @@
+﻿@inject IJSRuntime JS
+@inject PersistingCircuitHandler Persister
+
+@if (ready)
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    bool ready;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var existingPersistenceId = await JS.InvokeAsync<string?>("sessionStorage.getItem", "persistenceId");
+            if (existingPersistenceId is null)
+            {
+                await JS.InvokeVoidAsync("sessionStorage.setItem", "persistenceId", Persister.InitializeAsNew());
+            }
+            else
+            {
+                await Persister.InitializeAsExistingAsync(new Guid(existingPersistenceId));
+            }
+
+            ready = true;
+            StateHasChanged();
+        }
+    }
+}
